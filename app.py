@@ -24,7 +24,7 @@ vectors_config = models.VectorParams(
     distance = models.Distance.COSINE
 )
 
-OPENAI_API_KEY="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"
+OPENAI_API_KEY=""
 
 embeddings=OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY) # passs the key in here 
 
