@@ -17,10 +17,10 @@ import toml
 
 # Load the configuration file
 
-url = st.Secrets["url"]
-port = st.Secrets["port"]
-api_key = st.Secrets["api_key"]
-openai_key = st.Secrets["openai_key"]
+url = st.secrets["url"]
+port = st.secrets["port"]
+api_key = st.secrets["api_key"]
+openai_key = st.secrets["openai_key"]
 
 
 # cluster connection
