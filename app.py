@@ -16,7 +16,7 @@ import toml
 
 
 # Load the configuration file
-config = toml.load("SECRET.toml")
+config = toml.load("config.toml")
 
 # cluster connection
 client = QdrantClient(
