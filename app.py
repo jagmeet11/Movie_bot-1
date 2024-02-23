@@ -17,12 +17,17 @@ import toml
 
 # Load the configuration file
 
+url = st.secrets["url"]
+port = st.secrets["port"]
+api_key = st.secrets["api_key"]
+openai_key = st.secrets["openai_key"]
+
 
 # cluster connection
 client = QdrantClient(
-    url = st.Secrets["url"] ,
-    port= st.Secrets["port"],
-    api_key = st.Secrets["api_key"]
+    url = url ,
+    port= port,
+    api_key = api_key
 )
 
 vectors_config = models.VectorParams(
@@ -30,7 +35,7 @@ vectors_config = models.VectorParams(
     distance = models.Distance.COSINE
 )
 
-OPENAI_API_KEY= st.Secrets["openai_key"]
+OPENAI_API_KEY= openai_key
 
 embeddings=OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY) # passs the key in here 
 
