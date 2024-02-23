@@ -10,13 +10,19 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain.prompts.prompt import PromptTemplate
+import toml
 
+#streamlit run app.py
+
+
+# Load the configuration file
+config = toml.load("SECRET.toml")
 
 # cluster connection
 client = QdrantClient(
-    url = 'https://02702cd9-b8bb-4785-bf59-ab7c327443d8.us-east4-0.gcp.cloud.qdrant.io:6333' ,
-    port=6333,
-    api_key = '_sYptKewmRFnn7bSMfU1DZP1kEz3KXuJ6TzKLfD1-B5LaWfw71kE8w'
+    url = config["QdrantClient"]["url"] ,
+    port= config["QdrantClient"]["port"],
+    api_key = config["QdrantClient"]["api_key"]
 )
 
 vectors_config = models.VectorParams(
@@ -24,7 +30,7 @@ vectors_config = models.VectorParams(
     distance = models.Distance.COSINE
 )
 
-OPENAI_API_KEY=""
+OPENAI_API_KEY= config["OpenAI"]["api_key"]
 
 embeddings=OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY) # passs the key in here 
 
@@ -34,17 +40,18 @@ vector_store = Qdrant(
     embeddings=embeddings,
 )
 
-data = pd.read_csv('cleaned_movie_data.csv')
-data = data.dropna()
-data = data[:1000]
-data = data.reset_index(drop = True)
+# the chunking is a one time thing and only needs to be done when training
+# data = pd.read_csv('cleaned_movie_data.csv')
+# data = data.dropna()
+# data = data[:1000]
+# data = data.reset_index(drop = True)
 
-chunks = []
-for i in range(0, len(data)):
-    chunk = ',' .join(f"{col}: {data.iloc[i][col]}" for col in data.columns)
-    chunks.append(chunk)
+# chunks = []
+# for i in range(0, len(data)):
+#     chunk = ',' .join(f"{col}: {data.iloc[i][col]}" for col in data.columns)
+#     chunks.append(chunk)
 
-vector_store.add_texts(chunks)
+# vector_store.add_texts(chunks)
 
 retriever = vector_store.as_retriever()
 
@@ -85,9 +92,6 @@ if prompt := st.chat_input("What is up?"):
         
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
-
-# response = f"Echo: {prompt}"
-if prompt:
     response = rag_chain2.invoke(prompt)
 
     # Display assistant response in chat message container
@@ -95,3 +99,7 @@ if prompt:
         st.markdown(response)
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+# response = f"Echo: {prompt}"
+# if prompt:
+    
