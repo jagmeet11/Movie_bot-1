@@ -5,21 +5,35 @@ This project is a FastAPI-based Service for Voice cloning. It provides endpoints
 ## Setup
 
 1. **Clone Repository**: Clone this repository to your local machine.
+   - **Command Line Prompt**: 
+     ```bash
+     git clone https://github.com/raen-ai/SFO-API-POC.git
+     ```
 
-Comand Line Prompt : git clone https://github.com/raen-ai/SFO-API-POC.git
+2. **Create Environment**: Creates a virtual environment for the project.
+   - **Command Line Prompt**: 
+     ```bash
+     python -m venv env
+     ```
+     or 
+     ```bash
+     python3 -m venv env
+     ```
 
-
-2. **Create Environment**: Creates a virtual environment for the project
-
-Command Line Prompt : python -m venv env or python3 -m venv
-
-
-3. **Activate Environment**: Activates virtual environment
-
-Command Line Prompt:
-env/Scripts/Activate.ps1 (for windows)
-env/Scripts/Activate.bat (for windows optional)
-source env/bin/activate (for linux)
+3. **Activate Environment**: Activates virtual environment.
+   - **Command Line Prompt**:
+     - For Windows:
+       ```bash
+       env/Scripts/Activate.ps1
+       ```
+       or (optional)
+       ```bash
+       env/Scripts/Activate.bat
+       ```
+     - For Linux:
+       ```bash
+       source env/bin/activate
+       ```
 
 
 ## Endpoints
