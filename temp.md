@@ -179,4 +179,267 @@ aws_session = session.Session(
 secrets_manager = aws_session.client('secretsmanager')
 ```
 
+### Fetching API
+- **Asynchronous Function:** The function is asynchronous, allowing non-blocking execution for improved performance.
+- **Parameter:** Accepts an API key as a string parameter obtained from the `APIKeyHeader` security dependency.
+- **Debug Print:** Prints the received API key for debugging purposes.
+- **Retrieve API Keys:** Calls the `retrieve_api_keys` function to retrieve stored API keys from the AWS Secrets Manager.
+- **Validation:** Validates the received API key against the retrieved keys. If the API key is not found in the retrieved keys, it raises an `HTTPException` with a status code of 403 (Forbidden) and a message indicating an invalid API key.
+- **Return:** Returns the validated API key.
 
+```python
+async def get_api_key(api_key: str = Security(api_key_header)):
+    print(f"Received API key: {api_key}")  # Debug print
+    api_keys = await retrieve_api_keys(SECRET_NAME)
+    if api_key not in api_keys.values():
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return api_key
+```
+### Function Retirve keys
+
+- **Asynchronous Function:** The function is asynchronous, allowing non-blocking execution for improved performance.
+- **Parameter:** Accepts the name of the secret as a string parameter.
+- **AWS Secrets Manager Retrieval:** Utilizes the `secrets_manager.get_secret_value` method to retrieve the secret from the AWS Secrets Manager based on the provided secret name.
+- **Secret Retrieval:** Retrieves the secret string from the response.
+- **Debug Print:** Prints the retrieved secret string for debugging purposes.
+- **JSON Parsing:** Parses the secret string as JSON to obtain the API keys.
+- **Error Handling:** Handles potential errors such as `ClientError` and other exceptions. In case of errors, it raises an `HTTPException` with a status code of 500 (Internal Server Error) and provides appropriate error details.
+
+```python
+async def retrieve_api_keys(secret_name: str):
+    try:
+        get_secret_value_response = secrets_manager.get_secret_value(SecretId=secret_name)
+        secret = get_secret_value_response['SecretString']
+        print(f"Retrieved secret: {secret}")  # Debug print
+        api_keys = json.loads(secret)
+        return api_keys
+    except ClientError as e:
+        print(f"An error occurred: {e.response['Error']['Message']}")
+        raise HTTPException(status_code=500, detail=f"Secrets Manager Service Error: {e.response['Error']['Message']}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected Error: {str(e)}")
+```
+
+### perform_inference Function
+- **Description:** Performs inference using the provided model, input text, and reference audio.
+- **Parameters:**
+  - `model`: The TTS model to use for inference.
+  - `text`: The input text to generate speech from.
+  - `reference_audio`: The path to the reference audio file for conditioning.
+- **Process:**
+  1. Extracts conditioning latents and speaker embedding using the reference audio.
+  2. Performs inference to generate speech based on the input text, conditioning latents, and speaker embedding.
+- **Return Value:** Returns the output of the inference process.
+
+```python
+def perform_inference(model, text, reference_audio):
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=reference_audio)
+    output = model.inference(text, "en", gpt_cond_latent, speaker_embedding)
+    return output
+```
+
+### Test Route for Rate Limits (/api/rate)
+- **Description:** Provides a test route to check the rate limit functionality.
+- **Endpoint:** `/api/rate`
+- **HTTP Method:** GET
+- **Rate Limit:** 1 request per 60 seconds
+- **Dependencies:** Utilizes the `RateLimiter` dependency to enforce rate limits.
+- **API Key Dependency:** Optionally depends on the `get_api_key` function to validate API keys.
+- **Response:** Returns a string indicating that the endpoint is working if the request is within the rate limit.
+
+```python
+@app.get("/api/rate", dependencies=[Depends(RateLimiter(times=1, seconds=60))])
+async def test(api_key: str = Depends(get_api_key)):
+    return "Endpoint is working"
+```
+
+### British Model Route
+- **Description:** Handles requests to generate British-accented speech using the provided input text and WAV file.
+- **Endpoint:** `/api/british`
+- **HTTP Method:** POST
+- **Rate Limit:** 10 requests per 60 seconds
+- **Dependencies:** Depends on the `RateLimiter` dependency to enforce rate limits. Additionally, depends on the `get_api_key` function for API key validation.
+- **Parameters:**
+  - `api_key`: API key for authentication and authorization.
+  - `text`: Input text to generate speech.
+  - `wav_file`: Uploaded WAV file containing reference audio.
+- **Process:**
+  1. Starts measuring the execution time.
+  2. Generates a unique identifier for file names based on the current date and a random string.
+  3. Loads the British accent model.
+  4. Defines input and output file names based on the unique identifier.
+  5. Saves the uploaded WAV file with the new name.
+  6. Performs inference to generate British-accented speech.
+  7. Saves the generated speech as a WAV file.
+  8. Uploads input and output files to an S3 bucket and generates presigned URLs.
+  9. Deletes the local files after uploading to S3.
+  10. Ends the execution time measurement.
+- **Response:** Returns a JSON object containing details about the generated speech, including presigned URLs for input and output files, processing time, and inference time.
+
+```python
+@app.post("/api/british", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+async def generate_speech_british(api_key: str = Depends(get_api_key),text: str = Form(...), wav_file: UploadFile = File(...)):
+    # Start time measurement
+    start_time = time.time()  
+
+    # Generate a unique identifier for the file names
+    random_string = ''.join(secrets.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(7))
+    today = date.today()
+    d4 = today.strftime("%b-%d-%Y")
+    unique_identifier = f"{random_string}_{d4}"
+
+
+    try:
+        british_model = load_accent_model("british")
+
+        # Define the input file name with the same unique identifier
+        original_filename = Path(wav_file.filename)
+        input_file_path = f"audio_inputs/input_{original_filename.stem}_{unique_identifier}{original_filename.suffix}"
+
+        # Define the output file name with the unique identifier
+        out_name = f"audio_outputs/output_{original_filename.stem}_{unique_identifier}.wav"
+
+
+        # Save the uploaded file with the new name
+        with open(input_file_path, "wb") as buffer:
+            shutil.copyfileobj(wav_file.file, buffer)
+
+        # Perform Inference
+        start_time_inf = time.time() 
+        output = perform_inference(british_model, text, input_file_path)
+        torchaudio.save(out_name, torch.tensor(output["wav"]).unsqueeze(0), 24000)
+        end_time_inf = time.time()
+
+        # Upload files to S3 and generate presigned URLs
+        input_key = f"inputs/{Path(input_file_path).name}"
+        output_key = f"outputs/{Path(out_name).name}"
+        
+        # Upload the input file
+        s3.upload_file(Filename=input_file_path, Bucket=BUCKET_NAME, Key=input_key)
+        # Generate a presigned URL for the input file
+        input_presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': BUCKET_NAME, 'Key': input_key}, ExpiresIn=3600)
+        
+        # Upload the output file
+        s3.upload_file(Filename=out_name, Bucket=BUCKET_NAME, Key=output_key)
+        # Generate a presigned URL for the output file
+        output_presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': BUCKET_NAME, 'Key': output_key}, ExpiresIn=3600)
+
+        # Delete the local files after uploading to S3
+        os.remove(input_file_path)
+        os.remove(out_name)
+
+        # End time measurement
+        end_time = time.time()  
+
+        processing_time = end_time - start_time  # Calculate processing time
+        infer_time = end_time_inf - start_time_inf # Calculate inference time
+
+        return {
+            "message": "Output Generated.",
+            "s3_input_presigned_url": input_presigned_url,
+            "s3_output_presigned_url": output_presigned_url,
+            "process_time": processing_time,
+            "infer_time": infer_time
+        }
+
+    except Exception as e:
+        print(str(e))
+        return {"error": "There was an error"}
+```
+
+### American Model Route
+- **Description:** Handles requests to generate American-accented speech using the provided input text and WAV file.
+- **Endpoint:** `/api/american`
+- **HTTP Method:** POST
+- **Rate Limit:** 10 requests per 60 seconds
+- **Dependencies:** Depends on the `RateLimiter` dependency to enforce rate limits. Additionally, depends on the `get_api_key` function for API key validation.
+- **Parameters:**
+  - `api_key`: API key for authentication and authorization.
+  - `text`: Input text to generate speech.
+  - `wav_file`: Uploaded WAV file containing reference audio.
+  - `language`: Language for speech generation (default is "en").
+  - `split_sentences`: Boolean indicating whether to split text into sentences (default is True).
+- **Process:**
+  1. Starts measuring the execution time.
+  2. Generates a unique identifier for file names based on the current date and a random string.
+  3. Defines input and output file names based on the unique identifier.
+  4. Saves the uploaded WAV file with the new name.
+  5. Calls the TTS function to generate American-accented speech with the provided parameters.
+  6. Uploads input and output files to an S3 bucket and generates presigned URLs.
+  7. Deletes the local files after uploading to S3.
+  8. Ends the execution time measurement.
+- **Response:** Returns a JSON object containing details about the generated speech, including presigned URLs for input and output files, processing time, and inference time.
+
+```python
+@app.post("/api/american",dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+async def generate_speech_american(api_key: str = Depends(get_api_key),text: str = Form(...), wav_file: UploadFile = File(...), language: str = "en", split_sentences: bool = True):
+    
+    # Start time measurement
+    start_time = time.time()  
+
+    # Generate a unique identifier for the file names
+    random_string = ''.join(secrets.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(7))
+    today = date.today()
+    d4 = today.strftime("%b-%d-%Y")
+    unique_identifier = f"{random_string}_{d4}"
+
+    try:
+        # Define the input file name with the same unique identifier
+        original_filename = Path(wav_file.filename)
+        input_file_path = f"audio_inputs/input_{original_filename.stem}_{unique_identifier}{original_filename.suffix}"
+
+        # Define the output file name with the unique identifier
+        out_name = f"audio_outputs/output_{original_filename.stem}_{unique_identifier}.wav"
+
+
+        # Save the uploaded file with the new name
+        with open(input_file_path, "wb") as buffer:
+            shutil.copyfileobj(wav_file.file, buffer)
+
+        start_time_inf = time.time() 
+
+        # Call the TTS function with the provided parameters
+        tts_model.tts_to_file(text=text,
+                            file_path=out_name,
+                            speaker_wav=[input_file_path],
+                            language=language,
+                            split_sentences=split_sentences)
+        
+        end_time_inf = time.time()
+
+        # Upload files to S3 and generate presigned URLs
+        input_key = f"inputs/{Path(input_file_path).name}"
+        output_key = f"outputs/{Path(out_name).name}"
+        
+        # Upload the input file
+        s3.upload_file(Filename=input_file_path, Bucket=BUCKET_NAME, Key=input_key)
+        # Generate a presigned URL for the input file
+        input_presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': BUCKET_NAME, 'Key': input_key}, ExpiresIn=3600)
+        
+        # Upload the output file
+        s3.upload_file(Filename=out_name, Bucket=BUCKET_NAME, Key=output_key)
+        # Generate a presigned URL for the output file
+        output_presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': BUCKET_NAME, 'Key': output_key}, ExpiresIn=3600)
+
+        # Delete the local files after uploading to S3
+        os.remove(input_file_path)
+        os.remove(out_name)
+
+        # End time measurement
+        end_time = time.time()  
+
+        processing_time = end_time - start_time  # Calculate processing time
+        infer_time = end_time_inf - start_time_inf # Calculate inference time
+
+        return {
+            "message": "Output Generated.",
+            "s3_input_presigned_url": input_presigned_url,
+            "s3_output_presigned_url": output_presigned_url,
+            "process_time": processing_time,
+            "infer_time": infer_time
+        }
+    except Exception as e:
+        print(str(e))
+        return {"error": "There was an error."}
+```
