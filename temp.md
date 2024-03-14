@@ -25,11 +25,11 @@ The functionality of this service is centered around providing a reference audio
 - [American Model Route](#american-model-route)
 - [Main Block](#main-block)
 
-# Imports
+### Imports
 
 The provided code imports various modules and libraries necessary for building a FastAPI service for text-to-speech (TTS) functionality. Here's a breakdown of the imports:
 
-```python```
+```python
 from fastapi import FastAPI, File, UploadFile, Form
 from TTS.api import TTS
 import uvicorn
@@ -62,31 +62,4 @@ from contextlib import asynccontextmanager
 import redis.asyncio as redis
 from fastapi.websocket import WebSocket
 from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter,       WebSocketRateLimiter
-
-# Load Environment Variables
-
-Using the Dotenv library we import load_dotenv which loads the environment variable file which contains the passwords and other sensitive information 
-
-``` Load_dotenv() ```
-
-# Model Initialization 
-
-The file path for the models for british and american accents have to be defined 
-
-``` BRITISH_MODEL_DIR = "/home/ubuntu/sfo-production/models/britV1" ```
-```AMERICAN_MODEL_DIR = "american"```
-
-# Load Model
-
-A fucntion Load_model is defined to load a TTS model from a specified directory.
-
-The function takes in the file path as a parameter and then 
-
-model parameters:
-
-```    CHECKPOINT_PATH = os.path.join(model_dir, "model.pth")   ```
-```      TOKENIZER_PATH = os.path.join(model_dir, "vocab.json_")```
-   ``` CONFIG_PATH = os.path.join(model_dir, "config.json")```
-
-
+from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
