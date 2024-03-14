@@ -22,7 +22,7 @@ This project is a FastAPI-based Service for Voice cloning. It provides endpoints
 
 3. **Activate Environment**: Activates virtual environment.
    - **Command Line Prompt**:
-     - For Windows:
+     For Windows:
        ```bash
        env/Scripts/Activate.ps1
        ```
@@ -30,7 +30,7 @@ This project is a FastAPI-based Service for Voice cloning. It provides endpoints
        ```bash
        env/Scripts/Activate.bat
        ```
-     - For Linux:
+     For Linux:
        ```bash
        source env/bin/activate
        ```
