@@ -78,3 +78,7 @@ API key authentication is implemented using the `x-api-key` header. Ensure that 
 ## Error Handling
 
 Errors are handled appropriately, and detailed error messages are provided in case of failures.
+
+## License
+
+This project is licensed under the MIT License.
