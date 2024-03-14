@@ -12,7 +12,7 @@ The functionality of this service is centered around providing a reference audio
 - [Load Accent Model](#Loading-Accent-Modell)
 - [Lifespan Handler](#lifespan-function)
 - [FastAPI Application Instance](#Initializing-FastAPI)
-- [AWS S3 Configuration](#AWS-Configuration-and-Secrets Management)
+- [AWS S3 Configuration](#AWS-Configuration-and-Secrets-Management)
 - [API Key Retrieval](#Fetching-API)
 - [Retrieve API Keys from Secrets Manager](#Function-Retirve-keys)
 - [Function for Inference](#perform_inference-Function)
