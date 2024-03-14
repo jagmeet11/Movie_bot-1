@@ -6,24 +6,19 @@ The functionality of this service is centered around providing a reference audio
 
 ## Table of Contents
 - [Imports](#imports)
-- [Load Environment Variables](#load-environment-variables)
+- [Load Environment Variables](#Load-Environment)
 - [Define Model Directories](#define-model-directories)
-- [Initialize Models](#initialize-models)
-- [Load Model from Directory](#load-model-from-directory)
-- [Load Accent Model](#load-accent-model)
-- [Lifespan Handler](#lifespan-handler)
-- [FastAPI Application Instance](#fastapi-application-instance)
-- [AWS S3 Configuration](#aws-s3-configuration)
-- [AWS Secrets Manager Configuration](#aws-secrets-manager-configuration)
-- [API Key Authentication Configuration](#api-key-authentication-configuration)
-- [Boto3 Session Initialization](#boto3-session-initialization)
-- [API Key Retrieval](#api-key-retrieval)
-- [Retrieve API Keys from Secrets Manager](#retrieve-api-keys-from-secrets-manager)
-- [Function for Inference](#function-for-inference)
-- [Rate Limit Test Route](#rate-limit-test-route)
+- [Load Model from Directory](#Load-Model)
+- [Load Accent Model](#Loading-Accent-Modell)
+- [Lifespan Handler](#lifespan-function)
+- [FastAPI Application Instance](#Initializing-FastAPI)
+- [AWS S3 Configuration](#AWS-Configuration-and-Secrets Management)
+- [API Key Retrieval](#Fetching-API)
+- [Retrieve API Keys from Secrets Manager](#Function-Retirve-keys)
+- [Function for Inference](#perform_inference-Function)
+- [Rate Limit Test Route](#Test-Route-for-Rate-Limits)
 - [British Model Route](#british-model-route)
 - [American Model Route](#american-model-route)
-- [Main Block](#main-block)
 
 ### Imports
 
@@ -115,7 +110,7 @@ def load_accent_model(accent_type):
         raise ValueError("Invalid accent type. Choose 'british' or 'american'.")
 ```
 
-### 'lifespan function'
+### lifespan function
 The function serves as an asynchronous context manager responsible for managing the initialization and cleanup tasks during the lifespan of the FastAPI application. Upon entering the context managed block, it prints the server's start time and initializes the necessary models for text-to-speech functionality, including both American and British accents. Additionally, it establishes a connection to a Redis server for rate limiting purposes. Subsequently, it initializes the FastAPI limiter with the Redis connection and yields control back to the caller. Finally, upon exiting the context managed block, it closes the FastAPI limiter. This function encapsulates the essential setup and teardown operations required for the application's lifecycle, ensuring efficient management of resources and services.
 
 ```python
@@ -239,7 +234,7 @@ def perform_inference(model, text, reference_audio):
     return output
 ```
 
-### Test Route for Rate Limits (/api/rate)
+### Test Route for Rate Limits
 - **Description:** Provides a test route to check the rate limit functionality.
 - **Endpoint:** `/api/rate`
 - **HTTP Method:** GET
