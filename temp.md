@@ -1,6 +1,8 @@
 # FastAPI Service For Text To Speech Based On Voice Cloning
 
-This project is a FastAPI-based Service for Voice cloning. It provides endpoints for generating speech in both British and American accents by leveraging models trained on the XTTS architecture.
+The FastAPI Service for Text-to-Speech Voice Cloning is a project designed to facilitate voice cloning using FastAPI. It offers endpoints tailored for generating speech in British and American accents. Leveraging models trained on the XTTS architecture, this service allows users to clone their voices and customize accents for generated speech.
+
+The functionality of this service is centered around providing a reference audio, typically the user's voice, to allow the model to learn voice patterns. Users can input desired text, and the service generates speech with the user's voice, but in the selected accent—either British or American.
 
 ## Setup
 
